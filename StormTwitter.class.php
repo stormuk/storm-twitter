@@ -5,6 +5,8 @@
 * What could go wrong?
 */
 
+require_once('oauth/twitteroauth.php');
+
 class StormTwitter {
 
   private $defaults = array(
@@ -27,18 +29,21 @@ class StormTwitter {
     return print_r($this->defaults, true);
   }
   
-  function getTweets($count = 20) {
+  //I'd prefer to put username before count, but for backwards compatibility it's not really viable. :(
+  function getTweets($count = 20,$screenname = false) {  
     if ($count > 20) $count = 20;
     if ($count < 1) $count = 1;
+    
+    if ($screenname === false) $screenname = $this->defaults['screenname'];
   
-    $result = $this->checkValidCache();
+    $result = $this->checkValidCache($screenname);
     
     if ($result !== false) {
       return $this->cropTweets($result,$count);
     }
     
     //If we're here, we need to load.
-    $result = $this->oauthGetTweets();
+    $result = $this->oauthGetTweets($screenname);
     
     if (isset($result['errors'])) {
       return array('error'=>'Twitter said: '.$result['errors'][0]['message']);
@@ -48,15 +53,15 @@ class StormTwitter {
     
   }
   
-  function cropTweets($result,$count) {
+  private function cropTweets($result,$count) {
     return array_slice($result, 0, $count);
   }
   
-  function getCacheLocation() {
+  private function getCacheLocation() {
     return $this->defaults['directory'].'.tweetcache';
   }
   
-  function checkValidCache() {
+  private function checkValidCache($screenname) {
     $file = $this->getCacheLocation();
     if (is_file($file)) {
       $cache = file_get_contents($file);
@@ -65,28 +70,43 @@ class StormTwitter {
         unlink($file);
         return false;
       }
-      if (!isset($cache['time']) || !isset($cache['tweets'])) {
+      if (!isset($cache)) {
         unlink($file);
         return false;
       }
-      if ($cache['time'] < (time() - 3600)) {
-        $result = $this->oauthGetTweets();
+      
+      // Delete the old cache from the first version, before we added support for multiple usernames
+      if (isset($cache['time'])) {
+        unlink($file);
+        return false;
+      }
+      
+      //Check if we have a cache for the user.
+      if (!isset($cache[$screenname])) return false;
+      
+      if (!isset($cache[$screenname]['time']) || !isset($cache[$screenname]['tweets'])) {
+        unset($cache[$screenname]);
+        file_put_contents($file,json_encode($cache));
+        return false;
+      }
+      
+      if ($cache[$screenname]['time'] < (time() - 3600)) {
+        $result = $this->oauthGetTweets($screenname);
         if (!isset($result['errors'])) {
           return $result;
         }
       }
-      return $cache['tweets'];
+      return $cache[$screenname]['tweets'];
     } else {
       return false;
     }
   }
   
-  function oauthGetTweets() {
+  private function oauthGetTweets($screenname) {
     $key = $this->defaults['key'];
     $secret = $this->defaults['secret'];
     $token = $this->defaults['token'];
     $token_secret = $this->defaults['token_secret'];
-    $screenname = $this->defaults['screenname'];
     
     if (empty($key)) return array('error'=>'Missing Consumer Key - Check Settings');
     if (empty($secret)) return array('error'=>'Missing Consumer Secret - Check Settings');
@@ -98,11 +118,11 @@ class StormTwitter {
     $result = $connection->get('statuses/user_timeline', array('screen_name' => $screenname, 'count' => 20, 'trim_user' => true));
     
     if (!isset($result['errors'])) {
-      $cache['time'] = time();
-      $cache['tweets'] = $result;
+      $cache[$screenname]['time'] = time();
+      $cache[$screenname]['tweets'] = $result;
       $file = $this->getCacheLocation();
       file_put_contents($file,json_encode($cache));
-      $this->st_last_cached = $cache['time'];
+      $this->st_last_cached = $cache[$screenname]['time'];
     } else {
       $last_error = '['.date('r').'] Twitter error: '.$result['errors'][0]['message'];
       $this->st_last_error = $last_error;
