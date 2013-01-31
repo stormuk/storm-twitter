@@ -15,10 +15,10 @@ class StormTwitter {
     'secret' => '',
     'token' => '',
     'token_secret' => '',
-    'screenname' => ''      
+    'screenname' => '',
+    'cache_expire' => 3600      
   );
   
-  public $st_last_cached = false;
   public $st_last_error = false;
   
   function __construct($args = array()) {
@@ -30,20 +30,28 @@ class StormTwitter {
   }
   
   //I'd prefer to put username before count, but for backwards compatibility it's not really viable. :(
-  function getTweets($count = 20,$screenname = false) {  
+  function getTweets($count = 20,$screenname = false,$options = false) {  
     if ($count > 20) $count = 20;
     if ($count < 1) $count = 1;
     
+    $default_options = array('trim_user'=>true, 'exclude_replies'=>true, 'include_rts'=>false);
+    
+    if ($options === false || !is_array($options)) {
+      $options = $default_options;
+    } else {
+      $options = array_merge($default_options, $options);
+    }
+    
     if ($screenname === false) $screenname = $this->defaults['screenname'];
   
-    $result = $this->checkValidCache($screenname);
+    $result = $this->checkValidCache($screenname,$options);
     
     if ($result !== false) {
       return $this->cropTweets($result,$count);
     }
     
     //If we're here, we need to load.
-    $result = $this->oauthGetTweets($screenname);
+    $result = $this->oauthGetTweets($screenname,$options);
     
     if (isset($result['errors'])) {
       return array('error'=>'Twitter said: '.$result['errors'][0]['message']);
@@ -61,15 +69,17 @@ class StormTwitter {
     return $this->defaults['directory'].'.tweetcache';
   }
   
-  private function checkValidCache($screenname) {
+  private function getOptionsHash($options) {
+    $hash = md5(serialize($options));
+    return $hash;
+  }
+  
+  private function checkValidCache($screenname,$options) {
     $file = $this->getCacheLocation();
     if (is_file($file)) {
       $cache = file_get_contents($file);
       $cache = @json_decode($cache,true);
-      if (count($cache) != 2) {
-        unlink($file);
-        return false;
-      }
+      
       if (!isset($cache)) {
         unlink($file);
         return false;
@@ -81,32 +91,38 @@ class StormTwitter {
         return false;
       }
       
-      //Check if we have a cache for the user.
-      if (!isset($cache[$screenname])) return false;
+      $cachename = $screenname."-".$this->getOptionsHash($options);
       
-      if (!isset($cache[$screenname]['time']) || !isset($cache[$screenname]['tweets'])) {
-        unset($cache[$screenname]);
+      //Check if we have a cache for the user.
+      if (!isset($cache[$cachename])) return false;
+      
+      if (!isset($cache[$cachename]['time']) || !isset($cache[$cachename]['tweets'])) {
+        unset($cache[$cachename]);
         file_put_contents($file,json_encode($cache));
         return false;
       }
       
-      if ($cache[$screenname]['time'] < (time() - 3600)) {
-        $result = $this->oauthGetTweets($screenname);
+      if ($cache[$cachename]['time'] < (time() - $this->defaults['cache_expire'])) {
+        $result = $this->oauthGetTweets($screenname,$options);
         if (!isset($result['errors'])) {
           return $result;
         }
       }
-      return $cache[$screenname]['tweets'];
+      return $cache[$cachename]['tweets'];
     } else {
       return false;
     }
   }
   
-  private function oauthGetTweets($screenname) {
+  private function oauthGetTweets($screenname,$options) {
     $key = $this->defaults['key'];
     $secret = $this->defaults['secret'];
     $token = $this->defaults['token'];
     $token_secret = $this->defaults['token_secret'];
+    
+    $cachename = $screenname."-".$this->getOptionsHash($options);
+    
+    $options = array_merge($options, array('screen_name' => $screenname, 'count' => 20));
     
     if (empty($key)) return array('error'=>'Missing Consumer Key - Check Settings');
     if (empty($secret)) return array('error'=>'Missing Consumer Secret - Check Settings');
@@ -115,14 +131,17 @@ class StormTwitter {
     if (empty($screenname)) return array('error'=>'Missing Twitter Feed Screen Name - Check Settings');
     
     $connection = new TwitterOAuth($key, $secret, $token, $token_secret);
-    $result = $connection->get('statuses/user_timeline', array('screen_name' => $screenname, 'count' => 20, 'trim_user' => true));
+    $result = $connection->get('statuses/user_timeline', $options);
+    
+    if (is_file($this->getCacheLocation())) {
+      $cache = json_decode(file_get_contents($this->getCacheLocation()),true);
+    }
     
     if (!isset($result['errors'])) {
-      $cache[$screenname]['time'] = time();
-      $cache[$screenname]['tweets'] = $result;
+      $cache[$cachename]['time'] = time();
+      $cache[$cachename]['tweets'] = $result;
       $file = $this->getCacheLocation();
       file_put_contents($file,json_encode($cache));
-      $this->st_last_cached = $cache[$screenname]['time'];
     } else {
       $last_error = '['.date('r').'] Twitter error: '.$result['errors'][0]['message'];
       $this->st_last_error = $last_error;
