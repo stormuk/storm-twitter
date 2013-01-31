@@ -144,8 +144,13 @@ class StormTwitter {
       $file = $this->getCacheLocation();
       file_put_contents($file,json_encode($cache));
     } else {
-      $last_error = '['.date('r').'] Twitter error: '.$result['errors'][0]['message'];
-      $this->st_last_error = $last_error;
+      if (is_array($results) && isset($result['errors'][0]) && isset($result['errors'][0]['message'])) {
+        $last_error = '['.date('r').'] Twitter error: '.$result['errors'][0]['message'];
+        $this->st_last_error = $last_error;
+      } else {
+        $last_error = '['.date('r').'] Twitter returned an invalid response. It is probably down.';
+        $this->st_last_error = $last_error;
+      }
     }
     
     return $result;
