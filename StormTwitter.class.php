@@ -60,7 +60,7 @@ class StormTwitter {
       } else {
         $last_error = $result['errors'];
       }
-      return array('error'=>'Twitter said: '.$last_error);
+      return array('error'=>'Twitter said: '.json_encode($last_error));
     } else {
       return $this->cropTweets($result,$count);
     }
@@ -68,6 +68,7 @@ class StormTwitter {
   }
   
   private function cropTweets($result,$count) {
+    if (empty($result)) debug_print_backtrace();
     return array_slice($result, 0, $count);
   }
   
@@ -147,7 +148,7 @@ class StormTwitter {
       $cache[$cachename]['time'] = time();
       $cache[$cachename]['tweets'] = $result;
       $file = $this->getCacheLocation();
-      file_put_contents($file,json_encode($cache));
+      //file_put_contents($file,json_encode($cache));
     } else {
       if (is_array($results) && isset($result['errors'][0]) && isset($result['errors'][0]['message'])) {
         $last_error = '['.date('r').'] Twitter error: '.$result['errors'][0]['message'];
