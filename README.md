@@ -45,3 +45,12 @@ Basic usage of the class would be similar to
     echo "<pre>";
     var_dump($tweets);
     echo "</pre>";
+    
+    
+
+Change Log
+============================
+
+Version 2.0.4
+
+Improve error handling if we don't get a standard error response from twitter, but something still went wrong.
