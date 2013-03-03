@@ -32,15 +32,15 @@ Basic usage of the class would be similar to
     $twitter = new StormTwitter($config);
     
     // getTweets is the only public method. For legacy reasons, it takes between 0 and 3 parameters.
-    // getTweets(number_of_tweets, twitter_screenname, custom_parameters_to_go_twitter);
+    // getTweets(twitter_screenname, number_of_tweets, custom_parameters_to_go_twitter);
     
-    $tweets = $twitter->getTweets(1,'lgladdy');
+    $tweets = $twitter->getTweets('lgladdy', 1);
     
     echo "<pre>";
     var_dump($tweets);
     echo "</pre>";
     
-    $tweets = $twitter->getTweets(1,'stormuk', array('include_rts'=>true,'exclude_replies'=>true));
+    $tweets = $twitter->getTweets('stormuk', 1, array('include_rts' => true, 'exclude_replies' => true));
     
     echo "<pre>";
     var_dump($tweets);
