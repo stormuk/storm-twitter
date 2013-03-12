@@ -152,7 +152,7 @@ class StormTwitter {
       $cache[$cachename]['time'] = time();
       $cache[$cachename]['tweets'] = $result;
       $file = $this->getCacheLocation();
-      //file_put_contents($file,json_encode($cache));
+      file_put_contents($file,json_encode($cache));
     } else {
       if (is_array($results) && isset($result['errors'][0]) && isset($result['errors'][0]['message'])) {
         $last_error = '['.date('r').'] Twitter error: '.$result['errors'][0]['message'];
