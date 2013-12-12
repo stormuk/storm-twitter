@@ -51,6 +51,12 @@ Basic usage of the class would be similar to
 Change Log
 ============================
 
+Version 2.1
+
+Support for the much more sensical username before count in getTweets. (Pull request from stevelacey)
+Check if the OAuthRequest class is already defined in our context. If it is, don't bother loading OAuth.php. This will stop compatibility errors with other OAuth plugins, but could mean you get other random errors relating to OAuth if you using anything other than the standard PHP OAuth library.
+
+
 Version 2.0.4
 
 Improve error handling if we don't get a standard error response from twitter, but something still went wrong.
