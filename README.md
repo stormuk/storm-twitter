@@ -6,7 +6,7 @@ A Twitter API 1.1 compliant class that provides an array of a users timeline fro
 Uses Abraham Williams's Twitter OAuth class
 
 
-Version 2.0
+Version 2.1
 ============================
 
 The class has now been updated to support multiple username/screennames, as well as full support for any parameters you want to pass through to the statuses/user_timeline API. (https://dev.twitter.com/docs/api/1.1/get/statuses/user_timeline).
