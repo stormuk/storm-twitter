@@ -1,6 +1,6 @@
 <?php
 /*
-* Version 2.0.4
+* Version 2.0.5
 * The base class for the storm twitter feed for developers.
 * This class provides all the things needed for the wordpress plugin, but in theory means you don't need to use it with wordpress.
 * What could go wrong?
@@ -32,7 +32,7 @@ class StormTwitter {
   
   function getTweets($screenname = false,$count = 20,$options = false) {
     // BC: $count used to be the first argument
-    if (is_int($screenname) {
+    if (is_int($screenname)) {
       list($screenname, $count) = array($count, $screenname);
     }
     
@@ -58,8 +58,8 @@ class StormTwitter {
     //If we're here, we need to load.
     $result = $this->oauthGetTweets($screenname,$options);
     
-    if (isset($result['errors'])) {
-      if (is_array($results) && isset($result['errors'][0]) && isset($result['errors'][0]['message'])) {
+    if (is_array($result) && isset($result['errors'])) {
+      if (is_array($result) && isset($result['errors'][0]) && isset($result['errors'][0]['message'])) {
         $last_error = $result['errors'][0]['message'];
       } else {
         $last_error = $result['errors'];
