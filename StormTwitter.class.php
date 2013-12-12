@@ -30,8 +30,12 @@ class StormTwitter {
     return print_r($this->defaults, true);
   }
   
-  //I'd prefer to put username before count, but for backwards compatibility it's not really viable. :(
-  function getTweets($count = 20,$screenname = false,$options = false) {  
+  function getTweets($screenname = false,$count = 20,$options = false) {
+    // BC: $count used to be the first argument
+    if (is_int($screenname) {
+      list($screenname, $count) = array($count, $screenname);
+    }
+    
     if ($count > 20) $count = 20;
     if ($count < 1) $count = 1;
     
