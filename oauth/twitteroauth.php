@@ -7,7 +7,8 @@
  */
 
 /* Load OAuth lib. You can find it at http://oauth.net */
-require_once('OAuth.php');
+// This is a pretty scary fix, but many people already load OAuth libraries, so, lets see if OAuthRequest is already defined. If it is, lets not bother loading...
+if (!class_exists('OAuthRequest')) require_once('OAuth.php');
 
 /**
  * Twitter OAuth class
